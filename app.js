@@ -91,7 +91,10 @@ mongoose
   .connect(MONGODB_URI)
   .then((result) => {
     // console.log(result);
-    const server = app.listen(process.env.PORT || 3000);
+    const server = app.listen(process.env.PORT || 8080,()=>{
+      const port = server.address().port;
+      console.log(`Express is working on port ${port}`);
+    });
   })
   .catch((err) => {
     console.log(err);
