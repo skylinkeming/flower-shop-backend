@@ -1,0 +1,7 @@
+{
+    "env":{
+        "MONGO_USER":"germinglin",
+        "MONGO_PASSWORD":"x2jknbkcl4",
+        "MONGO_DEFAULT_DATABASE":"flower-shop"
+    }
+}
