@@ -56,7 +56,7 @@ exports.createOrder = async (req, res, next) => {
   // console.log(11111111, req);
   if (!errors.isEmpty()) {
     console.log(errors);
-    console.log(111111, req.body);
+    console.log("create order error", req.body);
     const error = new Error("輸入資料不正確");
     error.statusCode = 422;
     next(error);

@@ -10,6 +10,8 @@ const helmet = require("helmet");
 const compression = require("compression");
 const morgan = require("morgan");
 
+const upload = multer({ dest: "uploads/" });
+
 const feedRoutes = require("./routes/feed");
 const authRoutes = require("./routes/auth");
 const userRoutes = require("./routes/user");
@@ -19,31 +21,34 @@ const accessLogStream = fs.createWriteStream(
   { flags: "a" }
 );
 
+const { uploadFile, getFileStream } = require("./s3");
+
 const app = express();
 app.use(helmet.crossOriginResourcePolicy({ policy: "cross-origin" }));
 app.use(compression());
 app.use(morgan("combined", { stream: accessLogStream }));
 
-const fileStorage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, "uploadImages");
-  },
-  filename: (req, file, cb) => {
-    cb(null, new Date().toISOString() + "-" + file.originalname);
-  },
-});
 
-const fileFilter = (req, file, cb) => {
-  if (
-    file.mimetype === "image/png" ||
-    file.mimetype === "image/jpg" ||
-    file.mimetype === "image/jpeg"
-  ) {
-    cb(null, true);
-  } else {
-    cb(null, false);
-  }
-};
+// const fileStorage = multer.diskStorage({
+//   destination: (req, file, cb) => {
+//     cb(null, "uploadImages");Ｆ
+//   },
+//   filename: (req, file, cb) => {
+//     cb(null, new Date().toISOString() + "-" + file.originalname);
+//   },
+// });
+
+// const fileFilter = (req, file, cb) => {
+//   if (
+//     file.mimetype === "image/png" ||
+//     file.mimetype === "image/jpg" ||
+//     file.mimetype === "image/jpeg"
+//   ) {
+//     cb(null, true);
+//   } else {
+//     cb(null, false);
+//   }
+// };
 
 const MONGODB_URI = `mongodb+srv://${process.env.MONGO_USER}:${process.env.MONGO_PASSWORD}@cluster0.osemr.mongodb.net/${process.env.MONGO_DEFAULT_DATABASE}`;
 
@@ -54,11 +59,11 @@ app.use(
 );
 app.use(bodyParser.json());
 
-app.use(
-  multer({ storage: fileStorage, fileFilter: fileFilter }).single("image")
-);
+// app.use(
+//   multer({ storage: fileStorage, fileFilter: fileFilter }).single("image")
+// );
 
-app.use("/uploadImages", express.static(path.join(__dirname, "uploadImages")));
+// app.use("/uploadImages", express.static(path.join(__dirname, "uploadImages")));
 
 const corsOptions = {
   origin: "*",
@@ -68,17 +73,26 @@ const corsOptions = {
 
 app.use(cors(corsOptions));
 
-// app.use((req, res, next) => {
-//   //允許跨域前端發request過來
-//   res.setHeader("Access-Control-Allow-Origin", "*");
-//   res.setHeader("Access-Control-Allow-Origin", "GET,POST,PUT,PATCH,DELETE");
-//   res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
-//   next();
-// });
-
 app.use("/feed", feedRoutes);
 app.use("/auth", authRoutes);
 app.use("/user", userRoutes);
+
+
+app.get("/uploadImages/:filename", (req, res) => {
+  const fileName = req.params.filename;
+  const readStream = getFileStream(fileName);
+  readStream.pipe(res);
+});
+
+app.post("/uploadImages", upload.single("image"), async (req, res) => {
+  const file = req.file;
+  const result = await uploadFile(file);
+  // console.log("result",result);
+  // console.log(result.Key)
+  res.send({ message:"上傳成功" , imagePath: `/uploadImages/${result.Key}` });
+  // res.send({message:"上傳成功"});
+});
+
 
 app.use((error, req, res, next) => {
   const statusCode = error.statusCode || 500;
@@ -91,7 +105,7 @@ mongoose
   .connect(MONGODB_URI)
   .then((result) => {
     // console.log(result);
-    const server = app.listen(process.env.PORT || 8080,()=>{
+    const server = app.listen(process.env.PORT || 8080, () => {
       const port = server.address().port;
       console.log(`Express is working on port ${port}`);
     });

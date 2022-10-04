@@ -38,7 +38,7 @@ router.get("/clients", clientController.getClients);
 router.post(
   "/client",
   isAuth,
-  [body("name").trim().isLength({ min: 4 })],
+  [body("name").trim().isLength({ min: 3 })],
   clientController.createClient
 );
 
@@ -47,7 +47,7 @@ router.get("/client/:clientId", clientController.getClient);
 router.put(
   "/client/:clientId",
   isAuth,
-  [body("name").trim().isLength({ min: 4 })],
+  [body("name").trim().isLength({ min: 3 })],
   clientController.updateClient
 );
 

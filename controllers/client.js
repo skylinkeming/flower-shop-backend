@@ -52,17 +52,17 @@ exports.getClients = async (req, res, next) => {
 
 exports.createClient = async (req, res, next) => {
   try {
-    const { name, phone, address, cellPhone, note } = req.body;
+    const { name, phone, address, cellPhone, note, imagePath } = req.body;
+    console.log('create client', req.body)
     const client = await Client.find({ name: name });
     let imageUrl = "";
-
     if (client.length > 0) {
       res.status(422).json({ message: "已存在相同名稱的客戶" });
       return;
     }
 
-    if (req.file) {
-      imageUrl = req.file.path;
+    if (imagePath) {
+      imageUrl = imagePath;
     }
 
     const newClient = new Client({
@@ -105,7 +105,8 @@ exports.getClient = async (req, res, next) => {
 exports.updateClient = async (req, res, next) => {
   try {
     const clientId = req.params.clientId;
-    const { name, phone, cellPhone, address, note, orders } = req.body;
+    const { name, phone, cellPhone, address, note, orders, imagePath } =
+      req.body;
     const client = await Client.findById(clientId);
 
     if (!client) {
@@ -113,9 +114,10 @@ exports.updateClient = async (req, res, next) => {
       return;
     }
 
-    if (req.file && client.imageUrl !== req.file.path) {
-      client.imageUrl = req.file.path;
+    if (imagePath) {
+      client.imageUrl = imagePath;
     }
+
     client.name = name;
     client.phone = phone;
     client.cellPhone = cellPhone;
