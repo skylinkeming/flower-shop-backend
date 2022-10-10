@@ -1,12 +1,13 @@
 const fs = require("fs");
 const path = require("path");
-const mongoose = require("mongoose");
-
 const { validationResult } = require("express-validator");
 const Order = require("../models/order");
 const Client = require("../models/client");
 
+
 exports.getOrders = async (req, res, next) => {
+  const startDate = req.query.startDate || "";
+  let endDate = req.query.endDate || "";
   const searchKey = req.query.searchKey || "";
   const currentPage = req.query.page || 1;
   const perPage = 10;
@@ -19,6 +20,17 @@ exports.getOrders = async (req, res, next) => {
       { clientName: { $regex: searchKey } },
     ],
   };
+  if (endDate) {
+    var result = new Date(endDate);
+    result.setDate(result.getDate() + 1);
+    endDate = result;
+  }
+  const dateRangeCondition = {
+    date: {
+      $gte: new Date(startDate),
+      $lt: new Date(endDate),
+    },
+  };
 
   try {
     let totalOrders, orders;
@@ -29,7 +41,18 @@ exports.getOrders = async (req, res, next) => {
         .sort({ date: -1 })
         .skip((currentPage - 1) * perPage)
         .limit(perPage);
-    } else {
+    }
+
+    if (startDate && endDate && !searchKey) {
+      totalOrders = await Order.find(dateRangeCondition).countDocuments();
+      orders = await Order.find(dateRangeCondition)
+        .populate("client")
+        .sort({ date: -1 })
+        .skip((currentPage - 1) * perPage)
+        .limit(perPage);
+    }
+
+    if (!searchKey && !startDate && !endDate) {
       totalOrders = await Order.find().countDocuments();
       orders = await Order.find()
         .populate("client")
@@ -42,6 +65,69 @@ exports.getOrders = async (req, res, next) => {
       message: "取得訂單資料成功",
       orders: orders,
       totalPages: Math.ceil(totalOrders / perPage),
+    });
+  } catch (err) {
+    if (!err.statusCode) {
+      err.statusCode = 500;
+    }
+    next(err);
+  }
+};
+
+exports.getMonthlyRevenue = async (req, res, next) => {
+  let startDate = req.query.startDate || "";
+  let endDate = req.query.endDate || "";
+  let clientId = req.query.clientId || "";
+
+  if (endDate) {
+    var result = new Date(endDate);
+    result.setDate(result.getDate() + 1);
+    endDate = result;
+  }
+
+  const dateRangeCondition = {
+    $and: [
+      {
+        date: {
+          $gte: new Date(startDate),
+          $lt: new Date(endDate),
+        },
+      },
+      {
+        client: clientId,
+      },
+      {
+        isPaid: true,
+      },
+    ],
+  };
+
+  try {
+    let orders;
+
+    orders = await Order.find(dateRangeCondition).sort({ date: 1 });
+    console.log(orders);
+
+    let revenue = {};
+
+    let startMonth = new Date(startDate).getMonth() + 1;
+    let endMonth = new Date(endDate).getMonth() + 1;
+    for (var i = startMonth; i <= endMonth; i++) {
+      revenue[i + "月"] = 0;
+    }
+
+    orders.map((order) => {
+      let orderMonth = order.date.getMonth() + 1 + "月";
+      if (revenue[orderMonth] !== "undefined") {
+        if (order.isPaid) {
+          revenue[orderMonth] += order.totalPrice;
+        }
+      }
+    });
+
+    res.status(200).json({
+      message: "取得營收成功",
+      monthlyRevenue: revenue,
     });
   } catch (err) {
     if (!err.statusCode) {
@@ -160,8 +246,7 @@ exports.updateOrder = async (req, res, next) => {
       phone,
       clientName,
     } = req.body;
-    console.log("shippingStatus");
-    let imageUrl = "";
+    // let imageUrl = "";
     if (req.file) {
       imageUrl = req.file.path;
     }
@@ -178,6 +263,20 @@ exports.updateOrder = async (req, res, next) => {
     order.products = products;
     order.totalPrice = totalPrice;
     order.date = date;
+    if (order.client && order.client !== client) {
+      //從舊的client中移除訂單
+      let oldClient = await Client.findById(order.client);
+      if (oldClient.orders.length) {
+        oldClient.orders.pull(orderId);
+        oldClient.save();
+      }
+      //把訂單加到新的client中
+      let newClient = await Client.findById(client);
+      if (!newClient.orders.includes(orderId)) {
+        newClient.orders.push(orderId);
+        newClient.save();
+      }
+    }
     order.client = client;
     order.isPaid = isPaid;
     order.note = note;
@@ -256,7 +355,7 @@ exports.deleteOrder = async (req, res, next) => {
 exports.deleteManyOrders = async (req, res, next) => {
   try {
     const { idArray } = req.body;
-    console.log(222222, req.body)
+    console.log(222222, req.body);
     await Order.deleteMany({ _id: idArray });
     res.status(200).json({ message: "刪除多筆訂單成功" });
   } catch (err) {

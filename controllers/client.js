@@ -26,14 +26,20 @@ exports.getClients = async (req, res, next) => {
       clients = await Client.find(searchCondition)
         .skip(perPage * (currentPage - 1))
         .limit(perPage)
-        .populate("orders")
+        .populate({
+          path: "orders",
+          options: { sort: { date: -1 } },
+        })
         .sort({ createdAt: -1 });
     } else {
       totalClients = await Client.find().countDocuments();
       clients = await Client.find()
         .skip(perPage * (currentPage - 1))
         .limit(perPage)
-        .populate("orders")
+        .populate({
+          path: "orders",
+          options: { sort: { date: -1 } },
+        })
         .sort({ createdAt: -1 });
     }
 
@@ -53,7 +59,7 @@ exports.getClients = async (req, res, next) => {
 exports.createClient = async (req, res, next) => {
   try {
     const { name, phone, address, cellPhone, note, imagePath } = req.body;
-    console.log('create client', req.body)
+    console.log("create client", req.body);
     const client = await Client.find({ name: name });
     let imageUrl = "";
     if (client.length > 0) {
@@ -88,7 +94,10 @@ exports.createClient = async (req, res, next) => {
 exports.getClient = async (req, res, next) => {
   try {
     const clientId = req.params.clientId;
-    const client = await Client.findById({ _id: clientId }).populate("orders");
+    const client = await Client.findById({ _id: clientId }).populate({
+      path: "orders",
+      options: { sort: { date: -1 } },
+    });
     if (!client) {
       res.status(404).json({ message: "找不到此客戶" });
       return;
@@ -107,6 +116,7 @@ exports.updateClient = async (req, res, next) => {
     const clientId = req.params.clientId;
     const { name, phone, cellPhone, address, note, orders, imagePath } =
       req.body;
+
     const client = await Client.findById(clientId);
 
     if (!client) {
@@ -114,7 +124,7 @@ exports.updateClient = async (req, res, next) => {
       return;
     }
 
-    if (imagePath) {
+    if (imagePath && client.imageUrl !== imagePath) {
       client.imageUrl = imagePath;
     }
 

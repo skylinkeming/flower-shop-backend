@@ -11,6 +11,8 @@ const router = express.Router();
 
 router.get("/orders", orderController.getOrders);
 
+router.get("/orders/monthlyRevenue", orderController.getMonthlyRevenue);
+
 router.post(
   "/order",
   isAuth,
