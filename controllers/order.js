@@ -6,7 +6,7 @@ const Client = require("../models/client");
 
 
 exports.getOrders = async (req, res, next) => {
-  const startDate = req.query.startDate || "";
+  let startDate = req.query.startDate || "";
   let endDate = req.query.endDate || "";
   const searchKey = req.query.searchKey || "";
   const currentPage = req.query.page || 1;
