@@ -15,6 +15,7 @@ const upload = multer({ dest: "uploads/" });
 const feedRoutes = require("./routes/feed");
 const authRoutes = require("./routes/auth");
 const userRoutes = require("./routes/user");
+const productRoutes = require("./routes/product");
 
 const accessLogStream = fs.createWriteStream(
   path.join(__dirname, "access.log"),
@@ -27,7 +28,6 @@ const app = express();
 app.use(helmet.crossOriginResourcePolicy({ policy: "cross-origin" }));
 app.use(compression());
 app.use(morgan("combined", { stream: accessLogStream }));
-
 
 // const fileStorage = multer.diskStorage({
 //   destination: (req, file, cb) => {
@@ -76,7 +76,7 @@ app.use(cors(corsOptions));
 app.use("/feed", feedRoutes);
 app.use("/auth", authRoutes);
 app.use("/user", userRoutes);
-
+app.use("/product", productRoutes);
 
 app.get("/uploadImages/:filename", (req, res) => {
   const fileName = req.params.filename;
@@ -89,10 +89,9 @@ app.post("/uploadImages", upload.single("image"), async (req, res) => {
   const result = await uploadFile(file);
   // console.log("result",result);
   // console.log(result.Key)
-  res.send({ message:"上傳成功" , imagePath: `/uploadImages/${result.Key}` });
+  res.send({ message: "上傳成功", imagePath: `/uploadImages/${result.Key}` });
   // res.send({message:"上傳成功"});
 });
-
 
 app.use((error, req, res, next) => {
   const statusCode = error.statusCode || 500;
