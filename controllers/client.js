@@ -59,7 +59,7 @@ exports.getClients = async (req, res, next) => {
 exports.createClient = async (req, res, next) => {
   try {
     const { name, phone, address, cellPhone, note, imagePath } = req.body;
-    console.log("create client", req.body);
+    // console.log("create client", req.body);
     const client = await Client.find({ name: name });
     let imageUrl = "";
     if (client.length > 0) {
@@ -114,8 +114,7 @@ exports.getClient = async (req, res, next) => {
 exports.updateClient = async (req, res, next) => {
   try {
     const clientId = req.params.clientId;
-    const { name, phone, cellPhone, address, note, orders, imagePath } =
-      req.body;
+    const { name, phone, cellPhone, address, note, imagePath } = req.body;
 
     const client = await Client.findById(clientId);
 
@@ -133,7 +132,7 @@ exports.updateClient = async (req, res, next) => {
     client.cellPhone = cellPhone;
     client.address = address;
     client.note = note;
-    client.orders = orders;
+    // client.orders = orders;
     // if (imageUrl !== client.imageUrl) {
     //   // clearImage(client.imageUrl);
     //   client.imageUrl = imageurl;
@@ -151,11 +150,17 @@ exports.updateClient = async (req, res, next) => {
 exports.deleteClient = async (req, res, next) => {
   try {
     const clientId = req.params.clientId;
-    const client = await Client.findById(clientId);
+    const client = await Client.findById(clientId).populate("orders");
+    console.log("delete client")
     if (!client) {
       res.status(404).json({ message: "找不到此客戶" });
       return;
     }
+    // if (client.orders.length > 0) {
+    //   console.log(client.orders.map((order) => order._id))
+    //   await Order.deleteMany({ _id: client.orders.map((order) => order._id) });
+    // }
+
     await Client.findByIdAndDelete(clientId);
     res.status(200).json({ message: "刪除客戶資料成功" });
   } catch (err) {

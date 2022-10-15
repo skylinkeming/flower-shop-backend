@@ -106,7 +106,7 @@ exports.getMonthlyRevenue = async (req, res, next) => {
     let orders;
 
     orders = await Order.find(dateRangeCondition).sort({ date: 1 });
-    console.log(orders);
+    // console.log(orders);
 
     let revenue = {};
 
@@ -149,7 +149,7 @@ exports.createOrder = async (req, res, next) => {
     // throw error;
     return;
   }
-  console.log(req.body);
+  // console.log(req.body);
 
   const products = req.body.products;
   const totalPrice = req.body.totalPrice;
@@ -266,9 +266,11 @@ exports.updateOrder = async (req, res, next) => {
     if (order.client && order.client !== client) {
       //從舊的client中移除訂單
       let oldClient = await Client.findById(order.client);
-      if (oldClient.orders.length) {
-        oldClient.orders.pull(orderId);
-        oldClient.save();
+      if(oldClient){
+        if (oldClient.orders.length) {
+          oldClient.orders.pull(orderId);
+          oldClient.save();
+        }
       }
       //把訂單加到新的client中
       let newClient = await Client.findById(client);
@@ -355,7 +357,7 @@ exports.deleteOrder = async (req, res, next) => {
 exports.deleteManyOrders = async (req, res, next) => {
   try {
     const { idArray } = req.body;
-    console.log(222222, req.body);
+    // console.log(222222, req.body);
     await Order.deleteMany({ _id: idArray });
     res.status(200).json({ message: "刪除多筆訂單成功" });
   } catch (err) {
