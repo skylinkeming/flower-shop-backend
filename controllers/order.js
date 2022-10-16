@@ -4,13 +4,39 @@ const { validationResult } = require("express-validator");
 const Order = require("../models/order");
 const Client = require("../models/client");
 
-
 exports.getOrders = async (req, res, next) => {
   let startDate = req.query.startDate || "";
   let endDate = req.query.endDate || "";
   const searchKey = req.query.searchKey || "";
   const currentPage = req.query.page || 1;
+
+  const dateOrder = req.query.dateOrder || -1;
+  const clientNameOrder = req.query.clientNameOrder;
+  const totalPriceOrder = req.query.totalPriceOrder;
+  const isPaidOrder = req.query.isPaidOrder;
+  const shippingStatusOrder = req.query.shippingStatusOrder;
+  const productsOrder = req.query.productsOrder;
+  const addressOrder = req.query.addressOrder;
   const perPage = 10;
+
+  let sortCondition = {};
+  if (productsOrder) {
+    sortCondition.products = productsOrder;
+  } else if (addressOrder) {
+    sortCondition.address = addressOrder;
+  } else if (clientNameOrder) {
+    sortCondition.clientName = clientNameOrder;
+  } else if (totalPriceOrder) {
+    sortCondition.totalPrice = totalPriceOrder;
+  } else if (isPaidOrder) {
+    sortCondition.isPaid = isPaidOrder;
+  } else if (shippingStatusOrder) {
+    sortCondition.shippingStatus = shippingStatusOrder;
+  } else if (dateOrder) {
+    sortCondition.date = dateOrder;
+  }
+
+  // console.log("sortCondition", sortCondition);
   const searchCondition = {
     $or: [
       { note: { $regex: searchKey } },
@@ -35,10 +61,11 @@ exports.getOrders = async (req, res, next) => {
   try {
     let totalOrders, orders;
     if (searchKey) {
+      // console.log(sortCondition)
       totalOrders = await Order.find(searchCondition).countDocuments();
       orders = await Order.find(searchCondition)
         .populate("client")
-        .sort({ date: -1 })
+        .sort(sortCondition)
         .skip((currentPage - 1) * perPage)
         .limit(perPage);
     }
@@ -47,7 +74,7 @@ exports.getOrders = async (req, res, next) => {
       totalOrders = await Order.find(dateRangeCondition).countDocuments();
       orders = await Order.find(dateRangeCondition)
         .populate("client")
-        .sort({ date: -1 })
+        .sort(sortCondition)
         .skip((currentPage - 1) * perPage)
         .limit(perPage);
     }
@@ -56,7 +83,7 @@ exports.getOrders = async (req, res, next) => {
       totalOrders = await Order.find().countDocuments();
       orders = await Order.find()
         .populate("client")
-        .sort({ date: -1 })
+        .sort(sortCondition)
         .skip((currentPage - 1) * perPage)
         .limit(perPage);
     }
@@ -96,9 +123,9 @@ exports.getMonthlyRevenue = async (req, res, next) => {
       {
         client: clientId,
       },
-      {
-        isPaid: true,
-      },
+      // {
+      //   isPaid: true,
+      // },
     ],
   };
 
@@ -118,10 +145,10 @@ exports.getMonthlyRevenue = async (req, res, next) => {
 
     orders.map((order) => {
       let orderMonth = order.date.getMonth() + 1 + "月";
-      if (revenue[orderMonth] !== "undefined") {
-        if (order.isPaid) {
-          revenue[orderMonth] += order.totalPrice;
-        }
+      if (revenue[orderMonth] === 0 || revenue[orderMonth]) {
+        revenue[orderMonth] += order.totalPrice;
+        // console.log("orderMonth:" + revenue[orderMonth]);
+        // console.log(order.totalPrice);
       }
     });
 
@@ -263,21 +290,29 @@ exports.updateOrder = async (req, res, next) => {
     order.products = products;
     order.totalPrice = totalPrice;
     order.date = date;
-    if (order.client && order.client !== client) {
+
+    console.log("order.client:" + order.client);
+    console.log("client:" + client);
+
+    if (order.client != client) {
       //從舊的client中移除訂單
-      let oldClient = await Client.findById(order.client);
-      if(oldClient){
-        if (oldClient.orders.length) {
-          oldClient.orders.pull(orderId);
-          oldClient.save();
+      if (order.client) {
+        let oldClient = await Client.findById(order.client);
+        if (oldClient) {
+          console.log("舊的客戶訂單：" + oldClient.orders);
+          if (oldClient.orders.length && oldClient.orders.includes(orderId)) {
+            oldClient.orders.pull(orderId);
+            oldClient.save();
+          }
         }
       }
-      //把訂單加到新的client中
-      let newClient = await Client.findById(client);
-      if (!newClient.orders.includes(orderId)) {
-        newClient.orders.push(orderId);
-        newClient.save();
-      }
+    }
+
+    //把訂單加到新的client中
+    let newClient = await Client.findById(client);
+    if (!newClient.orders.includes(orderId)) {
+      newClient.orders.push(orderId);
+      await newClient.save();
     }
     order.client = client;
     order.isPaid = isPaid;

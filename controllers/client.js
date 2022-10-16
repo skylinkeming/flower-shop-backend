@@ -151,7 +151,7 @@ exports.deleteClient = async (req, res, next) => {
   try {
     const clientId = req.params.clientId;
     const client = await Client.findById(clientId).populate("orders");
-    console.log("delete client")
+    // console.log("delete client")
     if (!client) {
       res.status(404).json({ message: "找不到此客戶" });
       return;
