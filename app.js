@@ -10,7 +10,8 @@ const helmet = require("helmet");
 const compression = require("compression");
 const morgan = require("morgan");
 
-const upload = multer({ dest: "uploads/" });
+// const upload = multer({ dest: "uploads/" });
+const upload = multer({ dest: "tmp/" });
 
 const feedRoutes = require("./routes/feed");
 const authRoutes = require("./routes/auth");
