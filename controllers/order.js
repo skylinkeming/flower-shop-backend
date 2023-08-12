@@ -131,24 +131,19 @@ exports.getMonthlyRevenue = async (req, res, next) => {
 
   try {
     let orders;
-
     orders = await Order.find(dateRangeCondition).sort({ date: 1 });
-    // console.log(orders);
 
     let revenue = {};
 
-    let startMonth = new Date(startDate).getMonth() + 1;
-    let endMonth = new Date(endDate).getMonth() + 1;
-    for (var i = startMonth; i <= endMonth; i++) {
+    for (var i = 1; i <= 12; i++) {
       revenue[i + "月"] = 0;
     }
+
 
     orders.map((order) => {
       let orderMonth = order.date.getMonth() + 1 + "月";
       if (revenue[orderMonth] === 0 || revenue[orderMonth]) {
         revenue[orderMonth] += order.totalPrice;
-        // console.log("orderMonth:" + revenue[orderMonth]);
-        // console.log(order.totalPrice);
       }
     });
 
