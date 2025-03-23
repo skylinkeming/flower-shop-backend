@@ -53,6 +53,10 @@ const orderSchema = new Schema(
       required: true,
       ref: "Client",
     },
+    scheduledOrder:{
+      type: String,
+      required: false,
+    }
   },
   {
     timestamps: true,

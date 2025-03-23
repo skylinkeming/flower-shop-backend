@@ -173,31 +173,35 @@ exports.createOrder = async (req, res, next) => {
   }
   // console.log(req.body);
 
-  const products = req.body.products;
-  const totalPrice = req.body.totalPrice;
-  const address = req.body.address;
-  const phone = req.body.phone;
-  const date = req.body.date;
-  const clientId = req.body.client;
-  const shippingStatus = req.body.shippingStatus;
-  const note = req.body.note;
-  const clientName = req.body.clientName;
+  const {
+    products,
+    totalPrice,
+    address,
+    phone,
+    date,
+    clientId,
+    shippingStatus,
+    note,
+    clientName,
+    scheduledOrder
+  } = req.body;
 
   let imageUrl = "";
   if (req.file) {
     imageUrl = req.file.path;
   }
   const order = new Order({
-    products: products,
-    totalPrice: totalPrice,
-    phone: phone,
-    address: address,
-    date: date,
+    products,
+    totalPrice,
+    address,
+    phone,
+    date,
+    clientId,
+    shippingStatus,
+    note,
+    clientName,
+    scheduledOrder,
     imageUrl: imageUrl,
-    client: clientId,
-    note: note,
-    shippingStatus: shippingStatus,
-    clientName: clientName,
   });
 
   try {
@@ -215,7 +219,7 @@ exports.createOrder = async (req, res, next) => {
     res.status(201).json({
       message: "新增訂單成功",
       order: order,
-    });
+    });  
   } catch (err) {
     if (!err.statusCode) {
       err.statusCode = 500;

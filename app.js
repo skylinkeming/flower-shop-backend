@@ -24,6 +24,7 @@ const productRoutes = require("./routes/product");
 // );
 
 const { uploadFile, getFileStream } = require("./s3");
+// const { uploadImageToCloudflare } = require("./cloudflare");
 
 const app = express();
 app.use(helmet.crossOriginResourcePolicy({ policy: "cross-origin" }));
@@ -51,7 +52,11 @@ app.use(compression());
 //   }
 // };
 
+// const MONGODB_URI = `mongodb+srv://${process.env.MONGO_USER}:${process.env.MONGO_PASSWORD}@cluster0.7sghq.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0/${process.env.MONGO_DEFAULT_DATABASE}`;
 const MONGODB_URI = `mongodb+srv://${process.env.MONGO_USER}:${process.env.MONGO_PASSWORD}@cluster0.osemr.mongodb.net/${process.env.MONGO_DEFAULT_DATABASE}`;
+
+
+console.log({ MONGODB_URI })
 
 app.use(
   bodyParser.urlencoded({
@@ -69,7 +74,7 @@ app.use(bodyParser.json());
 const corsOptions = {
   origin: "*",
   methods: "GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS",
-  allowedHeaders: ["Content-Type", "Authorization"],
+  allowedHeaders: [ "Content-Type", "Authorization" ],
 };
 
 app.use(cors(corsOptions));
@@ -79,6 +84,7 @@ app.use("/auth", authRoutes);
 app.use("/user", userRoutes);
 app.use("/product", productRoutes);
 
+
 app.get("/uploadImages/:filename", (req, res) => {
   const fileName = req.params.filename;
   const readStream = getFileStream(fileName);
@@ -87,8 +93,9 @@ app.get("/uploadImages/:filename", (req, res) => {
 
 app.post("/uploadImages", upload.single("image"), async (req, res) => {
   const file = req.file;
+  // const result = uploadImageToCloudflare(file)
   const result = await uploadFile(file);
-  // console.log("result",result);
+  console.log("result",result);
   // console.log(result.Key)
   res.send({ message: "上傳成功", imagePath: `/uploadImages/${result.Key}` });
   // res.send({message:"上傳成功"});
