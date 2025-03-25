@@ -54,8 +54,9 @@ const orderSchema = new Schema(
       ref: "Client",
     },
     scheduledOrder:{
-      type: String,
+      type: Schema.Types.ObjectId,
       required: false,
+      ref: "ScheduledOrder",
     }
   },
   {

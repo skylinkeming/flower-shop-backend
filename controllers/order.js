@@ -1,8 +1,10 @@
 const fs = require("fs");
 const path = require("path");
+const mongoose = require("mongoose");
 const { validationResult } = require("express-validator");
 const Order = require("../models/order");
 const Client = require("../models/client");
+const ScheduledOrder = require("../models/scheduledOrder");
 
 exports.getOrders = async (req, res, next) => {
   let startDate = req.query.startDate || "";
@@ -136,14 +138,14 @@ exports.getMonthlyRevenue = async (req, res, next) => {
     let revenue = {};
 
     for (var i = 1; i <= 12; i++) {
-      revenue[i + "月"] = 0;
+      revenue[ i + "月" ] = 0;
     }
 
 
     orders.map((order) => {
       let orderMonth = order.date.getMonth() + 1 + "月";
-      if (revenue[orderMonth] === 0 || revenue[orderMonth]) {
-        revenue[orderMonth] += order.totalPrice;
+      if (revenue[ orderMonth ] === 0 || revenue[ orderMonth ]) {
+        revenue[ orderMonth ] += order.totalPrice;
       }
     });
 
@@ -179,7 +181,7 @@ exports.createOrder = async (req, res, next) => {
     address,
     phone,
     date,
-    clientId,
+    client,
     shippingStatus,
     note,
     clientName,
@@ -190,37 +192,62 @@ exports.createOrder = async (req, res, next) => {
   if (req.file) {
     imageUrl = req.file.path;
   }
-  const order = new Order({
-    products,
-    totalPrice,
-    address,
-    phone,
-    date,
-    clientId,
-    shippingStatus,
-    note,
-    clientName,
-    scheduledOrder,
-    imageUrl: imageUrl,
-  });
+
+  const session = await mongoose.startSession();
+  session.startTransaction();
 
   try {
-    const client = await Client.findById(clientId);
-    if (!client) {
+    const clientData = await Client.findById(client);
+
+    if (!clientData) {
       const error = new Error("查無此訂單的客戶");
       error.statusCode = 404;
       next(error);
       return;
     }
-    const result = await order.save();
-    // console.log(22222222222222, client);
-    client.orders.push(order._id);
-    await client.save();
+    const order = new Order({
+      products,
+      totalPrice,
+      address,
+      phone,
+      date,
+      client,
+      shippingStatus,
+      note,
+      clientName,
+      scheduledOrder,
+      imageUrl: imageUrl,
+    });
+
+    await order.save();
+    
+    clientData.orders.push(order._id);
+    await clientData.save();
+
+    if(scheduledOrder){
+      const s_order = await ScheduledOrder.findById(scheduledOrder);
+
+      if (!s_order) {
+        const error = new Error("查無此訂單的預定訂單");
+        error.statusCode = 404;
+        next(error);
+        return;
+      }
+      s_order.orders.push(order._id);
+      await s_order.save();
+    }
+
+    await session.commitTransaction(); 
+    session.endSession();
+
     res.status(201).json({
       message: "新增訂單成功",
       order: order,
-    });  
+    });
   } catch (err) {
+    await session.abortTransaction(); 
+    session.endSession();
+
     if (!err.statusCode) {
       err.statusCode = 500;
     }
