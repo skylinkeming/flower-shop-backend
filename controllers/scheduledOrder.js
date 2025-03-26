@@ -45,11 +45,6 @@ exports.getScheduledOrders = async (req, res, next) => {
             // console.log(sortCondition)
             totalOrders = await ScheduledOrder.find(searchCondition).countDocuments();
             orders = await ScheduledOrder.find(searchCondition)
-                // .populate({
-                //     path: "orders",
-                //     // populate: { path: "client" }
-                //     // strictPopulate: false
-                // })
                 // .sort(sortCondition)
                 .skip((currentPage - 1) * perPage)
                 .limit(perPage);
@@ -68,12 +63,11 @@ exports.getScheduledOrders = async (req, res, next) => {
         if (!searchKey && !startDate && !endDate) {
             totalOrders = await ScheduledOrder.find().countDocuments();
             orders = await ScheduledOrder.find()
-                .populate("orders")
-                // .populate({
-                //     path: "orders",
-                //     populate: { path: "client" }
-                //     // strictPopulate: false
-                // })
+                .populate({
+                    path: "orders",
+                    populate: { path: "client" }
+                    // strictPopulate: false
+                })
                 .sort(sortCondition)
                 .skip((currentPage - 1) * perPage)
                 .limit(perPage);
