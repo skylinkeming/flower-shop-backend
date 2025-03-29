@@ -11,6 +11,7 @@ const s3 = new S3({
   region,
   accessKeyId,
   secretAccessKey,
+  s3ForcePathStyle: true
 });
 
 //uploads a file to s3
