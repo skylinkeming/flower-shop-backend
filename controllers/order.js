@@ -161,6 +161,27 @@ exports.getMonthlyRevenue = async (req, res, next) => {
   }
 };
 
+
+//todo: 
+// exports.createOrders = async (req, res, next) => {
+//   try {
+//     const orders = req.body.orders;
+
+//     if (!Array.isArray(orders) || orders.length === 0) {
+//       return res.status(400).json({ message: "Invalid orders data" });
+//     }
+
+
+//     const insertedOrders = await Order.insertMany(orders);
+
+//     res.status(201).json({ message: "Orders inserted successfully", data: insertedOrders });
+//   } catch (error) {
+//     console.error("Error inserting orders:", error);
+//     res.status(500).json({ message: "Internal server error", error: error.message });
+//   }
+
+// }
+
 exports.createOrder = async (req, res, next) => {
   const errors = validationResult(req);
   // console.log(11111111, req);
@@ -215,20 +236,20 @@ exports.createOrder = async (req, res, next) => {
       shippingStatus,
       note,
       clientName,
-      scheduledOrder,
+      scheduledOrder: scheduledOrder ? scheduledOrder : null,
       imageUrl: imageUrl,
-    });
+    });  
 
     await order.save();
-    
+
     clientData.orders.push(order._id);
     await clientData.save();
 
-    if(scheduledOrder){
+    if (scheduledOrder) {
       const s_order = await ScheduledOrder.findById(scheduledOrder);
 
       if (!s_order) {
-        const error = new Error("查無此訂單的預定訂單");
+        const error = new Error("查無此訂單的例行訂單資料");
         error.statusCode = 404;
         next(error);
         return;
@@ -237,7 +258,7 @@ exports.createOrder = async (req, res, next) => {
       await s_order.save();
     }
 
-    await session.commitTransaction(); 
+    await session.commitTransaction();
     session.endSession();
 
     res.status(201).json({
@@ -245,7 +266,7 @@ exports.createOrder = async (req, res, next) => {
       order: order,
     });
   } catch (err) {
-    await session.abortTransaction(); 
+    await session.abortTransaction();
     session.endSession();
 
     if (!err.statusCode) {
