@@ -52,7 +52,7 @@ exports.login = async (req, res, next) => {
       { email: loadedUser.email, userId: loadedUser._id.toString() },
       "flowershop",
       {
-        expiresIn: "4h",
+        expiresIn: "48h",
       }
     );
     res.status(200).json({

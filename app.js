@@ -87,8 +87,13 @@ app.use("/product", productRoutes);
 
 app.get("/uploadImages/:filename", (req, res) => {
   const fileName = req.params.filename;
-  const readStream = getFileStream(fileName);
-  readStream.pipe(res);
+  try {
+    const readStream = getFileStream(fileName);
+    readStream.pipe(res);
+  }catch(err){
+    console.log(err);
+    res.status(500).send({ message: "Error retrieving S3 file" });
+  }
 });
 
 app.post("/uploadImages", upload.single("image"), async (req, res) => {
